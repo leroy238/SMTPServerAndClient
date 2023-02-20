@@ -408,6 +408,7 @@ def errorProcessing(serverSocket, errorCode):
 
 def receiveLine(serverSocket):
     try:
+        serverSocket.settimeout(30)
         line = serverSocket.recv(1024).decode()
         return line
     except Exception:
