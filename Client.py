@@ -203,8 +203,7 @@ def openSocket():
 
 def HELO(clientSocket):
     if isValid(clientSocket, "NONE"):
-        #Hostname!!!! {gethostname()}
-        clientSocket.send(f"HELO alshdf\n".encode())
+        clientSocket.send(f"HELO {gethostname()\n".encode())
         if isValid(clientSocket, "MAIL"):
             return True
     return False
