@@ -15,6 +15,7 @@ socket_name = ""
 def openSocket():
     try:
         serverSocket = socket(AF_INET, SOCK_STREAM)
+        serverSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         serverSocket.bind(('', int(sys.argv[1])))
         serverSocket.listen(1)
     except Exception:
@@ -44,7 +45,7 @@ def printError501(serverSocket):
 def printError503(serverSocket):
     global finish_flag
     finish_flag = True
-    return sendOnSocket("503 Bad sequence of commands\n")
+    return sendOnSocket(serverSocket, "503 Bad sequence of commands\n")
 
 def print250(serverSocket):
     return sendOnSocket(serverSocket, "250 OK\n")
@@ -446,7 +447,9 @@ def process(serverSocket):
                 else:
                     errorCode = 503
         elif state == "Message":
-            if curr_message == ".\n":
+            bound = len(curr_message)-3
+            if curr_message[bound:] == "\n.\n":
+                full_message += curr_message[:bound]
                 finish_flag = True
                 state = "Mail"
                 errorCode = 250
