@@ -154,8 +154,6 @@ def isValid(clientSocket, state):
     try:
         line = clientSocket.recv(1024).decode()
         codeAccept = readCodeResponse(line, state)
-        if not(codeAccept):
-            print(line)
     except Exception:
         print("ERROR: Could not receive message. Terminating...")
     return codeAccept
@@ -172,7 +170,7 @@ def sendMessage(clientSocket, message, state):
             return (True, True)
         try:
             clientSocket.send("QUIT\n".encode())
-        except:
+        except Exception:
             print("ERROR: Could not send message via socket.")
             return (False, False)
         isValid(clientSocket, state)
@@ -214,7 +212,6 @@ def sendAll(clientSocket):
     for line in range(0, len(sendArray)):
         valid, sent = sendMessage(clientSocket, sendArray[line], stateArray[line])
         if not(valid) and sent:
-            print(line)
             clientSocket.send("QUIT\n".encode())
             return False
 
