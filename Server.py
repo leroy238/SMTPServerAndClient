@@ -291,6 +291,7 @@ def isHELO():
         whitespaceIndex = whitespace(index)
         if whitespaceIndex > index:
             index = whitespaceIndex
+            index = letDigStr(index)
             nullIndex = isNullspace(index)
             if nullIndex >= index:
                 socket_name = curr_message[index:nullIndex]
