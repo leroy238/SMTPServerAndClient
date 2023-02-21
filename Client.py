@@ -222,16 +222,6 @@ def main():
     global sendArray, stateArray
     state = "MAIL" # Legal states are "MAIL", "DATA" ,"RCPT", "MESSAGE"
 
-    clientSocket = openSocket()
-    if clientSocket == None:
-        return
-
-    valid = HELO(clientSocket)
-    if not(valid):
-        sendMessage(clientSocket, "QUIT\n", "MAIL")
-        clientSocket.close()
-        return
-
     userLine = readLine(state)
     reversePath = ""
     forwardPaths = []
@@ -244,10 +234,6 @@ def main():
             reversePath = "<" + userLine + ">\n"
             sendArray.append("MAIL FROM: " + reversePath)
             stateArray.append(state)
-            #valid = sendMessage(clientSocket, "MAIL FROM: " + reversePath, state)
-            #if not(valid):
-             #   sendMessage(clientSocket, "QUIT\n", state)
-              #  break
             state = "RCPT"
         #End MAIL
         elif state == "RCPT":
@@ -259,7 +245,7 @@ def main():
             forwardPaths.append('<')
             count = 0
             for char in userLine:
-                if char == ' ':
+                if char == ' ' or char == '\t':
                     continue
                 if char == ',':
                     forwardPaths[count] += '>'
@@ -270,10 +256,6 @@ def main():
                     sendLine += ">\n"
                     sendArray.append(sendLine)
                     stateArray.append(state)
-                    #valid = sendMessage(clientSocket, sendLine, state)
-                    #if not(valid):
-                        #sendMessage(clientSocket, "QUIT\n", state)
-                        #return
                     sendLine = "RCPT TO: <"
                 else:
                     forwardPaths[count] += char
@@ -281,28 +263,16 @@ def main():
             sendLine += ">\n"
             sendArray.append(sendLine)
             stateArray.append(state)
-            #valid = sendMessage(clientSocket, sendLine, state)
-            #if not(valid):
-                #sendMessage(clientSocket, "QUIT\n", state)
-                #break
             state = "DATA"
         #End RCPT
         elif state == "DATA":
             sendArray.append("DATA\n")
             stateArray.append(state)
-            #valid = sendMessage(clientSocket, "DATA\n", state)
-            #if not(valid):
-                #sendMessage(clientSocket, "QUIT\n", state)
-                #break
 
             state = "MESSAGE"
 
             sendArray.append("From: " + reversePath)
             stateArray.append(state)
-            #valid = sendMessage(clientSocket, "From: " + reversePath, state)
-            #if not(valid):
-                #sendMessage(clientSocket, "QUIT\n", "MAIL")
-                #break
 
             toMessage = "To: " + forwardPaths[0]
             for path in forwardPaths[1:]:
@@ -311,37 +281,35 @@ def main():
 
             sendArray.append(toMessage)
             stateArray.append(state)
-            #valid = sendMessage(clientSocket, toMessage, state)
-            #if not(valid):
-                #sendMessage(clientSocket, "QUIT\n", "MAIL")
-                #break
 
             #Extra newline seperates headers. Different placement for different header structures.
             sendArray.append("Subject: " + userLine + '\n')
             stateArray.append(state)
-            #valid = sendMessage(clientSocket, "Subject: " + userLine + '\n', state)
-            #if not(valid):
-                #sendMessage(clientSocket, "QUIT\n", "MAIL")
-                #break
         #End DATA
         else:
             while userLine != ".\n":
                 sendArray.append(userLine)
                 stateArray.append(state)
-                #valid = sendMessage(clientSocket, userLine, state)
-                #if not(valid):
-                    #sendMessage(clientSocket, "QUIT\n", state)
-                    #break
                 userLine = input() + '\n'
             sendArray.append(userLine)
             stateArray.append(state)
-            #valid = sendMessage(clientSocket, userLine, state)
             state = "MAIL"
             break
         #End MESSAGE
 
         userLine = readLine(state)
     #End while
+
+    clientSocket = openSocket()
+    if clientSocket == None:
+        return
+
+    valid = HELO(clientSocket)
+    if not(valid):
+        sendMessage(clientSocket, "QUIT\n", "MAIL")
+        clientSocket.close()
+        return
+
     sendAll(clientSocket)
     clientSocket.close()
                     
