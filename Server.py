@@ -382,8 +382,13 @@ def isRcptToCMD():
 def isQuit():
     if len(curr_message) >= 4:
         quitMessage = "QUIT\n"
-        if curr_message == quitMessage:
-            return True
+        if len(curr_message) == 4:
+            if curr_message == quitMessage:
+                return True
+        else:
+            if curr_message[0:5] == quitMessage:
+                bashResponse()
+                return True
     return False
 
 def errorProcessing(serverSocket, errorCode):
@@ -407,31 +412,36 @@ def errorProcessing(serverSocket, errorCode):
 
 def receiveLine(serverSocket):
     try:
-        serverSocket.settimeout(4)
+        serverSocket.setblocking(False)
         line = serverSocket.recv(1024).decode()
-        if len(line) == 0:
-            return None
         return line
     except Exception:
-        print("ERROR: Read failed.")
         return None
+
+def bashResponse():
+    global curr_message
+    line = ""
+    count = 0
+    for char in curr_message:
+        line += char
+        count += 1
+        if char == '\n':
+            curr_message = curr_message[count:]
+            return line
 
 def process(serverSocket):
     global curr_message, full_message, addresses, finish_flag
     state = "Mail" # Valid states are "Mail", "Rcpt/Data", "Message"
 
-    curr_message = receiveLine(serverSocket)
-    if curr_message == None:
-        print221(serverSocket)
-        serverSocket.close()
-        return
+    curr_message += serverSocket.recv(1024).decode()
 
     errorCode = 0
     while True:
-        if curr_message == None:
+        if curr_message == None or len(curr_message) == 0:
             print221(serverSocket)
             serverSocket.close()
             return
+
         if isQuit():
             print221(serverSocket)
             serverSocket.close()
@@ -447,6 +457,7 @@ def process(serverSocket):
             rcptValue = isRcptToCMD()
             errorCode = rcptValue[1]
             if isData():
+                bashResponse()
                 if len(addresses) != 0:
                     state = "Message"
                     errorCode = 354
@@ -454,37 +465,47 @@ def process(serverSocket):
                     errorCode = 503
         elif state == "Message":
             bound = len(curr_message)-3
-            if curr_message[bound:] == "\n.\n":
-                full_message += curr_message[:bound]
+            if curr_message[bound:] == "\n.\n" or curr_message == '.\n':
+                if curr_message[bound:] == "\n.\n": 
+                    full_message += curr_message[:bound]
+                curr_message = ""
                 finish_flag = True
                 state = "Mail"
                 errorCode = 250
                 for address in addresses:
                     messageToFile(address)
             else:
-                full_message += curr_message
-                curr_message = receiveLine(serverSocket)
+                full_message += bashResponse()
+                sentence = receiveLine(serverSocket)
+                if sentence == None:
+                    if curr_message == None or len(curr_message) == 0:
+                        print221(serverSocket)
+                        serverSocket.close()
+                        return
+                    else:
+                        curr_message += sentence
                 continue
 
+        bashResponse()
         badCode, sent = errorProcessing(serverSocket, errorCode)
         if badCode:
             state = "MAIL"
         if not(sent):
-            print221(serverSocket)
             serverSocket.close()
             return
-
-        curr_message = receiveLine(serverSocket)
-        if curr_message == None:
-            print221(serverSocket)
-            serverSocket.close()
-            return
+        if len(curr_message) == 0:
+            sentence = receiveLine(serverSocket)
+            if sentence == None:
+                    print221(serverSocket)
+                    serverSocket.close()
+                    return
+            else:
+                curr_message += sentence
     #end while
 
     if not(finish_flag):
         sent = printError501(serverSocket)
         if not(sent):
-            print221(serverSocket)
             serverSocket.close()
             return
     full_message = ""
@@ -508,13 +529,14 @@ def main():
         if not(print220(connection)):
            continue 
 
-        sentence = receiveLine(connection)
+        sentence = connection.recv(1024).decode()
         if sentence == None:
             continue
 
-        curr_message = sentence
+        curr_message += sentence
         valid, error = isHELO()
         if valid:
+            bashResponse()
             if not(sendOnSocket(connection, f"250 Hello {socket_name} pleased to meet you\n")):
                 continue
             process(connection)
