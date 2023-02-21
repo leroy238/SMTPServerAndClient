@@ -153,6 +153,8 @@ def isValid(clientSocket, state):
     codeAccept = False
     try:
         line = clientSocket.recv(1024).decode()
+        if len(line) == 0:
+            raise Exception
         codeAccept = readCodeResponse(line, state)
     except Exception:
         print("ERROR: Could not receive message. Terminating...")

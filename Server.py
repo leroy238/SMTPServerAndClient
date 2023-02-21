@@ -465,10 +465,12 @@ def process(serverSocket):
         if badCode:
             state = "MAIL"
         if not(sent):
+            serverSocket.close()
             return
 
         curr_message = receiveLine(serverSocket)
         if curr_message == None:
+            serverSocket.close()
             return
     #end while
 
@@ -510,5 +512,6 @@ def main():
         else:
             errorProcessing(connection, error)
     #end while
+    serverSocket.close()
 
 main()
