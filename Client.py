@@ -153,8 +153,6 @@ def isValid(clientSocket, state):
     codeAccept = False
     try:
         line = clientSocket.recv(1024).decode()
-        if len(line) == 0:
-            raise Exception
         codeAccept = readCodeResponse(line, state)
     except Exception:
         print("ERROR: Could not receive message. Terminating...")
@@ -205,17 +203,58 @@ def openSocket():
 
 def HELO(clientSocket):
     if isValid(clientSocket, "NONE"):
-        clientSocket.send(f"HELO {gethostname()}\n".encode())
+        #Hostname!!!! {gethostname()}
+        clientSocket.send(f"HELO alshdf\n".encode())
         if isValid(clientSocket, "MAIL"):
             return True
     return False
 
 def sendAll(clientSocket):
-    for line in range(0, len(sendArray)):
-        valid, sent = sendMessage(clientSocket, sendArray[line], stateArray[line])
-        if not(valid) and sent:
-            clientSocket.send("QUIT\n".encode())
-            return False
+    string = ""
+    for line in sendArray:
+        string += line
+
+    try:
+        clientSocket.send(string.encode())
+    except Exception:
+        print("ERROR: Server did not receive message.\n")
+        return False
+
+    #How many responses would a (correct) server send?
+    responses = 0
+    for state in stateArray:
+        if state != "MESSAGE":
+            responses += 1
+    
+    #Load all responses from the server
+    index = 0
+    count = 0
+    serverResponses = []
+    errorLine = clientSocket.recv(1024).decode()
+    while count < responses:
+        for char in errorLine:
+            index += 1
+            if char == '\n':
+                serverResponses.append(errorLine[:index])
+                errorLine = errorLine[index:]
+                index = 0
+                count += 1
+        if count < responses:
+            errorLine += clientSocket.recv(1024).decode()
+
+    #Now with all of the errors loaded, check if there were any errors.
+    index = 0
+    relatedMessage = 0
+    for state in stateArray:
+        if sendArray[relatedMessage] == '.\n' or state != "MESSAGE":
+            errorValid = readCodeResponse(serverResponses[index], state)
+            if not(errorValid):
+                print("ERROR: Server sent invalid code.\n")
+                return False
+            index += 1
+        relatedMessage += 1
+
+    return True
 
 def main():
     global sendArray, stateArray
@@ -310,6 +349,7 @@ def main():
         return
 
     sendAll(clientSocket)
+    sendMessage(clientSocket, "QUIT\n", "MAIL")
     clientSocket.close()
                     
 main()
