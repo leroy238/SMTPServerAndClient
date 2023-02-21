@@ -3,6 +3,7 @@
 
 import string
 import sys
+import select
 from socket import *
 
 curr_message = ""
@@ -409,7 +410,10 @@ def errorProcessing(serverSocket, errorCode):
 
 def receiveLine(serverSocket):
     try:
-        line = serverSocket.recv(1024).decode()
+        readList, writeList, exList = select.select([serverSocket], [], [], 1)
+        line = None
+        if len(readList) != 0:
+            line = serverSocket.recv(1024).decode()
         return line
     except Exception:
         print("ERROR: Read failed.")
