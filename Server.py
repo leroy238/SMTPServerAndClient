@@ -423,6 +423,8 @@ def process(serverSocket):
 
     curr_message = receiveLine(serverSocket)
     if curr_message == None:
+        print221(serverSocket)
+        serverSocket.close()
         return
 
     errorCode = 0
@@ -465,11 +467,13 @@ def process(serverSocket):
         if badCode:
             state = "MAIL"
         if not(sent):
+            print221(serverSocket)
             serverSocket.close()
             return
 
         curr_message = receiveLine(serverSocket)
         if curr_message == None:
+            print221(serverSocket)
             serverSocket.close()
             return
     #end while
@@ -477,6 +481,8 @@ def process(serverSocket):
     if not(finish_flag):
         sent = printError501(serverSocket)
         if not(sent):
+            print221(serverSocket)
+            serverSocket.close()
             return
     full_message = ""
     curr_message = ""
