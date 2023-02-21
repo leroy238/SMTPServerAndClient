@@ -291,14 +291,11 @@ def isHELO():
         whitespaceIndex = whitespace(index)
         if whitespaceIndex > index:
             index = whitespaceIndex
-            domainIndex = domain(index)
-            if domainIndex > index:
-                socket_name = curr_message[index:domainIndex]
-                index = domainIndex
-                nullIndex = isNullspace(index)
-                if nullIndex >= index:
-                    if isCRLF(nullIndex):
-                        return (True, 250)
+            nullIndex = isNullspace(index)
+            if nullIndex >= index:
+                socket_name = curr_message[index:nullIndex]
+                if isCRLF(nullIndex):
+                    return (True, 250)
         return (False, 501)
     return (False, 500)
 
@@ -429,6 +426,10 @@ def process(serverSocket):
 
     errorCode = 0
     while True:
+        if curr_message == None:
+            print221(serverSocket)
+            serverSocket.close()
+            return
         if isQuit():
             print221(serverSocket)
             serverSocket.close()
