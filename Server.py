@@ -54,7 +54,6 @@ def print354(serverSocket):
     return sendOnSocket(serverSocket, "354 Start mail input; end with <CRLF>.<CRLF>\n")
 
 def print221(serverSocket):
-    print("close")
     return sendOnSocket(serverSocket, f"221 {gethostname()} closing connection\n")
 
 def print220(serverSocket):
@@ -458,7 +457,6 @@ def process(serverSocket):
             rcptValue = isRcptToCMD()
             errorCode = rcptValue[1]
             if isData():
-                bashResponse()
                 if len(addresses) != 0:
                     state = "Message"
                     errorCode = 354
@@ -468,7 +466,7 @@ def process(serverSocket):
             bound = len(curr_message)-3
             if curr_message[bound:] == "\n.\n" or curr_message == '.\n':
                 if curr_message[bound:] == "\n.\n": 
-                    full_message += curr_message[:bound]
+                    full_message += curr_message[:bound+1]
                 curr_message = ""
                 finish_flag = True
                 state = "Mail"
