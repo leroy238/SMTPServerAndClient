@@ -54,6 +54,7 @@ def print354(serverSocket):
     return sendOnSocket(serverSocket, "354 Start mail input; end with <CRLF>.<CRLF>\n")
 
 def print221(serverSocket):
+    print("close")
     return sendOnSocket(serverSocket, f"221 {gethostname()} closing connection\n")
 
 def print220(serverSocket):
@@ -410,9 +411,9 @@ def errorProcessing(serverSocket, errorCode):
         sent = print354(serverSocket)
     return badCode, sent
 
-def receiveLine(serverSocket):
+def receiveLine(serverSocket, blocking):
     try:
-        serverSocket.setblocking(False)
+        serverSocket.setblocking(blocking)
         line = serverSocket.recv(1024).decode()
         return line
     except Exception:
@@ -476,14 +477,11 @@ def process(serverSocket):
                     messageToFile(address)
             else:
                 full_message += bashResponse()
-                sentence = receiveLine(serverSocket)
+                serverSocket.setblocking(True)
+                sentence = serverSocket.recv(1024).decode()
                 if sentence == None:
-                    if curr_message == None or len(curr_message) == 0:
-                        print221(serverSocket)
-                        serverSocket.close()
-                        return
-                    else:
-                        curr_message += sentence
+                    continue
+                curr_message += sentence
                 continue
 
         bashResponse()
@@ -494,7 +492,7 @@ def process(serverSocket):
             serverSocket.close()
             return
         if len(curr_message) == 0:
-            sentence = receiveLine(serverSocket)
+            sentence = receiveLine(serverSocket, True)
             if sentence == None:
                     print221(serverSocket)
                     serverSocket.close()
