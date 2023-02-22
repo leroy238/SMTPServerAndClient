@@ -62,10 +62,13 @@ def print220(serverSocket):
 
 def messageToFile(mailAddress):
     file = None
+    path = os.path.abspath(os.path.dirname(__file__))
+    path = os.path.join(path, "forward")
+    path = os.path.join(path, mailAddress)
     try:
-        file = open(os.path.join("forward", mailAddress), "a")
+        file = open(path, "a")
     except Exception:
-        file = open(os.path.join("forward", mailAddress), "x")
+        file = open(path, "x")
     finally:
         file.write(full_message)
         file.close()
@@ -226,6 +229,7 @@ def forwardPath(index):
     else:
         return index
 
+#Factoring of long code to distinguish "MAIL FROM:" and "RCPT TO:"
 def is2PartMessage(array1, array2):
     index = 0
 
@@ -284,6 +288,7 @@ def isHELO():
     if isData():
         indexData = 5
 
+    #Lengths of unstored arrays, and isData is boolean
     if indexMail >= 9 or indexRcpt >=  6 or indexData >= 0:
         return (False,503)
 
@@ -293,9 +298,9 @@ def isHELO():
         if whitespaceIndex > index:
             index = whitespaceIndex
             index = letDigStr(index)
+            socket_name = curr_message[whitespaceIndex:index]
             nullIndex = isNullspace(index)
             if nullIndex >= index:
-                socket_name = curr_message[index:nullIndex]
                 if isCRLF(nullIndex):
                     return (True, 250)
         return (False, 501)
@@ -315,6 +320,7 @@ def isMailFromCMD():
     if isHELO()[0]:
         index503HELO = 5
 
+    #Lengths of unstored arrays, and isData is boolean
     if index503Rcpt >=  6 or index503Data >= 0 or index503HELO >= 0:
         return (False,503)
 
@@ -357,6 +363,7 @@ def isRcptToCMD():
     if isHELO()[0]:
         index503HELO = 5
 
+    #Lengths of unstored arrays, and isData is boolean
     if index503Mail >= 9 or index503Data >= 0 or index503HELO >= 0:
         return (False, 503)
 
@@ -419,6 +426,7 @@ def receiveLine(serverSocket, blocking):
     except Exception:
         return None
 
+#Rips off up to the first \n of curr_message
 def bashResponse():
     global curr_message
     line = ""
@@ -478,6 +486,7 @@ def process(serverSocket):
                     
                 curr_message = ""
             else:
+                #Waits for .\n while still filling in the message
                 full_message += bashResponse()
                 serverSocket.setblocking(True)
                 sentence = serverSocket.recv(1024).decode()
@@ -493,12 +502,14 @@ def process(serverSocket):
         if not(sent):
             serverSocket.close()
             return
+        #If empty, has not seen .\n yet so there has to be more information coming
+        #Or connection died, if so will return nothing
         if len(curr_message) == 0:
             sentence = receiveLine(serverSocket, True)
             if sentence == None:
-                    print221(serverSocket)
-                    serverSocket.close()
-                    return
+                print221(serverSocket)
+                serverSocket.close()
+                return
             else:
                 curr_message += sentence
     #end while
@@ -529,6 +540,7 @@ def main():
         if not(print220(connection)):
            continue 
 
+        #Read HELO
         sentence = connection.recv(1024).decode()
         if sentence == None:
             continue

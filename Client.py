@@ -165,6 +165,7 @@ def sendMessage(clientSocket, message, state):
         print("ERROR: Could not send message via socket.")
         return (False, False)
 
+    #Should you be reading a message?
     if (message == ".\n" or not(state == "MESSAGE")):
         if isValid(clientSocket, state) and not(message == ".\n"):
             return (True, True)
