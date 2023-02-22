@@ -3,6 +3,7 @@
 
 import string
 import sys
+import os
 from socket import *
 
 curr_message = ""
@@ -62,9 +63,9 @@ def print220(serverSocket):
 def messageToFile(mailAddress):
     file = None
     try:
-        file = open("forward/" + mailAddress, "a")
+        file = open(os.path.join("forward", mailAddress), "a")
     except Exception:
-        file = open("forward/" + mailAddress, "x")
+        file = open(os.path.join("forward", mailAddress), "x")
     finally:
         file.write(full_message)
         file.close()
@@ -467,12 +468,15 @@ def process(serverSocket):
             if curr_message[bound:] == "\n.\n" or curr_message == '.\n':
                 if curr_message[bound:] == "\n.\n": 
                     full_message += curr_message[:bound+1]
-                curr_message = ""
+
                 finish_flag = True
                 state = "Mail"
                 errorCode = 250
+
                 for address in addresses:
                     messageToFile(address)
+                    
+                curr_message = ""
             else:
                 full_message += bashResponse()
                 serverSocket.setblocking(True)
